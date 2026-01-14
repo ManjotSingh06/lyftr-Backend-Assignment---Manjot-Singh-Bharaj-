@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  web:
+    build: .
+    volumes:
+      - data:/data
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:////data/app.db
+      - WEBHOOK_SECRET=secret
+      - LOG_LEVEL=INFO
+volumes:
+  data:

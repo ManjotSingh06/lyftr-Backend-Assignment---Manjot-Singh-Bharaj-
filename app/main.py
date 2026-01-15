@@ -4,11 +4,12 @@ from typing import Optional
 import hmac
 import hashlib
 import json
+import time
 from .config import settings
 from .models import init_db, MessageIn
 from .storage import insert_message, get_messages, get_stats
 from .logging_utils import log_requests
-from .metrics import HTTP_REQUESTS, WEBHOOK_REQUESTS, get_metrics
+from .metrics import HTTP_REQUESTS, WEBHOOK_REQUESTS,REQUEST_LATENCY, get_metrics
 import structlog
 
 app = FastAPI()
@@ -17,13 +18,26 @@ logger = structlog.get_logger()
 # Middleware
 @app.middleware("http")
 async def add_logging_and_metrics(request: Request, call_next):
+    start_time = time.time()
+    
+    
     response = await log_requests(request, call_next)
-    HTTP_REQUESTS.labels(method=request.method, endpoint=request.url.path, status=response.status_code).inc()
+    
+    
+    latency_ms = (time.time() - start_time) * 1000
+    
+    
+    HTTP_REQUESTS.labels(
+        method=request.method, 
+        endpoint=request.url.path, 
+        status=response.status_code
+    ).inc()
+    
+    
+    REQUEST_LATENCY.labels(endpoint=request.url.path).observe(latency_ms)
+    
     return response
 
-# @app.on_event("startup")
-# async def startup():
-#     await init_db()
 
 @app.on_event("startup")
 async def startup():

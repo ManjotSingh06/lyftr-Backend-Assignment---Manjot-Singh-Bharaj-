@@ -5,9 +5,14 @@ from pydantic import BaseModel, field_validator
 from typing import Optional
 from .config import settings
 import re
+from datetime import datetime
 
 # SQLAlchemy setup
-engine = create_async_engine(settings.database_url, echo=False)
+engine = create_async_engine(
+    settings.database_url,
+    echo=False,
+    connect_args={"check_same_thread": False},
+)
 async_session = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)  # type: ignore
 
 metadata = MetaData()
@@ -49,9 +54,11 @@ class MessageIn(BaseModel):
     @field_validator("ts")
     @classmethod
     def validate_ts(cls, v: str) -> str:
-        # ISO-8601 UTC string with Z suffix
-        if not re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$", v):
-            raise ValueError("ts must be ISO-8601 UTC string with Z suffix (e.g., 2025-01-15T10:00:00Z)")
+         # ISO-8601 UTC string with Z suffix
+        try:
+             datetime.strptime(v, "%Y-%m-%dT%H:%M:%SZ")
+        except ValueError:
+            raise ValueError("ts must be ISO-8601 UTC with Z suffix")
         return v
 
     @field_validator("text")
@@ -70,7 +77,6 @@ class MessageOut(BaseModel):
     to: str
     ts: str
     text: Optional[str] = None
-    created_at: str
 
 # DB init
 async def init_db():

@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     webhook_secret: Optional[str] = None
-    database_url: str = "sqlite+aiosqlite:///./app.db"
+    database_url: str = "sqlite+aiosqlite:////data/app.db"
     log_level: str = "INFO"
 
     @field_validator("log_level")

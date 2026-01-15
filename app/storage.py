@@ -31,7 +31,9 @@ async def get_messages(limit: int, offset: int, from_: Optional[str], since: Opt
         if since:
             where_clauses.append(messages_table.c.ts >= since)
         if q:
-            where_clauses.append(func.lower(messages_table.c.text).like(f"%{q.lower()}%"))
+            where_clauses.append(
+                func.lower(func.coalesce(messages_table.c.text, "")).like(f"%{q.lower()}%")
+            )
         if where_clauses:
             base = base.where(*where_clauses)
 
@@ -51,7 +53,6 @@ async def get_messages(limit: int, offset: int, from_: Optional[str], since: Opt
                 "to": r.to_msisdn,
                 "ts": r.ts,
                 "text": r.text,
-                "created_at": r.created_at,
             }
             for r in rows
         ]
@@ -70,6 +71,6 @@ async def get_stats():
             "total_messages": total_messages,
             "senders_count": senders_count,
             "messages_per_sender": messages_per_sender,
-            "first_message_ts": first_ts,
-            "last_message_ts": last_ts,
+            "first_message_ts": first_ts if total_messages > 0 else None,
+            "last_message_ts": last_ts if total_messages > 0 else None,
         }
